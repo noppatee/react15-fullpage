@@ -75,6 +75,10 @@ var SectionsContainer = _react2.default.createClass({
     window.removeEventListener('resize', this._handleResize);
     window.removeEventListener('hashchange', this._handleAnchor);
     this._removeMouseWheelEventHandlers();
+
+    window.removeEventListener('keydown', this._handleArrowKeys);
+
+    document.querySelector('body').style.overflow = 'visible';
   },
   componentDidMount: function componentDidMount() {
     window.addEventListener('resize', this._handleResize);
