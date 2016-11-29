@@ -67,6 +67,8 @@ const SectionsContainer = React.createClass({
     window.removeEventListener('keydown', this._handleArrowKeys);
 
     document.querySelector('body').style.overflow = 'visible';
+
+    this._removeTouchEventHandlers();
   },
 
   componentDidMount() {
@@ -82,6 +84,10 @@ const SectionsContainer = React.createClass({
         window.addEventListener('keydown', this._handleArrowKeys);
       }
     }
+
+    // try touch events
+    this._addTouchEventHandlers();
+
   },
 
   _addCSS3Scroll() {
@@ -130,8 +136,10 @@ const SectionsContainer = React.createClass({
     document.querySelector('body').style.overflow = 'hidden';
   },
 
+  // height 100% - to have container fixed height
   _addHeightToParents() {
-    let child = this.refs;
+    // let child = this.refs;
+    let child = ReactDOM.findDOMNode(this);
     let previousParent = child.parentNode;
 
     while (previousParent) {
@@ -226,6 +234,80 @@ const SectionsContainer = React.createClass({
     this._handleSectionTransition(index);
 
     this._addActiveClass();
+  },
+
+  _addTouchEventHandlers() {
+    window.addEventListener('touchstart', this._handleSwipeEvents, false);
+  },
+
+  _removeTouchEventHandlers() {
+    window.removeEventListener('touchstart', this._handleSwipeEvents);
+    window.removeEventListener('touchmove', this._handleSwipeEvents);
+  },
+
+  _handleSwipeEvents() {
+    this._removeTouchEventHandlers();
+
+  	let startX,
+  		startY;
+
+    let e = window.event || e; // old IE support
+
+    // document.addEventListener("touchstart", touchstart);
+
+  	// function touchstart(event) {
+		let touches = e.touches;
+		if (touches && touches.length) {
+			startX = touches[0].pageX;
+			startY = touches[0].pageY;
+      document.addEventListener('touchmove', touchmove);
+  	}
+
+  	function touchmove(event) {
+
+  		let touches = event.touches;
+  		if (touches && touches.length) {
+  		  event.preventDefault();
+  			let deltaX = startX - touches[0].pageX;
+  			let deltaY = startY - touches[0].pageY;
+
+        let offsetDelta = Math.max(-1, Math.min(1, deltaY));
+        let position = this.state.sectionScrolledPosition - offsetDelta * this.state.windowHeight;
+        let activeSection = this.state.activeSection + offsetDelta;
+        let maxPosition = 0 - this.props.children.length * this.state.windowHeight;
+
+        if (position > 0 || maxPosition === position || this.state.scrollingStarted) {
+          return this._addTouchEventHandlers();
+        }
+
+        if (deltaY >= 50 || deltaY <= -50) {
+          // set state
+
+          let index = this.props.anchors[activeSection];
+          if (!this.props.anchors.length || index) {
+            window.location.hash = '#' + index;
+          }
+
+          this.setState({
+            activeSection: activeSection,
+            scrollingStarted: true,
+            sectionScrolledPosition: position
+          });
+
+          setTimeout(() => {
+            this.setState({
+              scrollingStarted: false
+            });
+            this._addTouchEventHandlers();
+          }, this.props.delay + 300);
+
+        }
+
+  			if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
+  				document.removeEventListener('touchmove', touchmove);
+  			}
+  		}
+  	}
   },
 
   renderNavigation() {
