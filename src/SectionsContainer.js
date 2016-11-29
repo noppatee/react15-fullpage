@@ -248,6 +248,8 @@ const SectionsContainer = React.createClass({
   _handleSwipeEvents() {
     this._removeTouchEventHandlers();
 
+    let _this = this;
+
   	let startX,
   		startY;
 
@@ -272,34 +274,34 @@ const SectionsContainer = React.createClass({
   			let deltaY = startY - touches[0].pageY;
 
         let offsetDelta = Math.max(-1, Math.min(1, deltaY));
-        let position = this.state.sectionScrolledPosition - offsetDelta * this.state.windowHeight;
-        let activeSection = this.state.activeSection + offsetDelta;
-        let maxPosition = 0 - this.props.children.length * this.state.windowHeight;
+        let position = _this.state.sectionScrolledPosition - offsetDelta * _this.state.windowHeight;
+        let activeSection = _this.state.activeSection + offsetDelta;
+        let maxPosition = 0 - _this.props.children.length * _this.state.windowHeight;
 
-        if (position > 0 || maxPosition === position || this.state.scrollingStarted) {
-          return this._addTouchEventHandlers();
+        if (position > 0 || maxPosition === position || _this.state.scrollingStarted) {
+          return _this._addTouchEventHandlers();
         }
 
         if (deltaY >= 50 || deltaY <= -50) {
           // set state
 
-          let index = this.props.anchors[activeSection];
-          if (!this.props.anchors.length || index) {
+          let index = _this.props.anchors[activeSection];
+          if (!_this.props.anchors.length || index) {
             window.location.hash = '#' + index;
           }
 
-          this.setState({
+          _this.setState({
             activeSection: activeSection,
             scrollingStarted: true,
             sectionScrolledPosition: position
           });
 
           setTimeout(() => {
-            this.setState({
+            _this.setState({
               scrollingStarted: false
             });
-            this._addTouchEventHandlers();
-          }, this.props.delay + 300);
+            _this._addTouchEventHandlers();
+          }, _this.props.delay + 300);
 
         }
 
@@ -340,6 +342,10 @@ const SectionsContainer = React.createClass({
   },
 
   render() {
+    let outerContainerStyle = {
+      height: '100%'
+    };
+
     let containerStyle = {
       height:     '100%',
       width:      '100%',
@@ -348,7 +354,7 @@ const SectionsContainer = React.createClass({
       transition: `all ${this.props.delay}ms ease`,
     };
     return (
-      <div>
+      <div style={outerContainerStyle}>
         <div className={this.props.className} style={containerStyle}>
           {this.props.scrollBar ? this._addChildrenWithAnchorId() : this.props.children}
         </div>

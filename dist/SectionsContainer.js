@@ -166,7 +166,7 @@ var SectionsContainer = _react2.default.createClass({
     window.removeEventListener('DOMMouseScroll', this._mouseWheelHandler);
   },
   _mouseWheelHandler: function _mouseWheelHandler() {
-    var _this = this;
+    var _this2 = this;
 
     this._removeMouseWheelEventHandlers();
 
@@ -192,10 +192,10 @@ var SectionsContainer = _react2.default.createClass({
     });
 
     setTimeout(function () {
-      _this.setState({
+      _this2.setState({
         scrollingStarted: false
       });
-      _this._addMouseWheelEventHandlers();
+      _this2._addMouseWheelEventHandlers();
     }, this.props.delay + 300);
   },
   _handleResize: function _handleResize() {
@@ -246,6 +246,8 @@ var SectionsContainer = _react2.default.createClass({
   _handleSwipeEvents: function _handleSwipeEvents() {
     this._removeTouchEventHandlers();
 
+    var _this = this;
+
     var startX = void 0,
         startY = void 0;
 
@@ -262,7 +264,6 @@ var SectionsContainer = _react2.default.createClass({
     }
 
     function touchmove(event) {
-      var _this2 = this;
 
       var touches = event.touches;
       if (touches && touches.length) {
@@ -271,34 +272,34 @@ var SectionsContainer = _react2.default.createClass({
         var deltaY = startY - touches[0].pageY;
 
         var offsetDelta = Math.max(-1, Math.min(1, deltaY));
-        var position = this.state.sectionScrolledPosition - offsetDelta * this.state.windowHeight;
-        var activeSection = this.state.activeSection + offsetDelta;
-        var maxPosition = 0 - this.props.children.length * this.state.windowHeight;
+        var position = _this.state.sectionScrolledPosition - offsetDelta * _this.state.windowHeight;
+        var activeSection = _this.state.activeSection + offsetDelta;
+        var maxPosition = 0 - _this.props.children.length * _this.state.windowHeight;
 
-        if (position > 0 || maxPosition === position || this.state.scrollingStarted) {
-          return this._addTouchEventHandlers();
+        if (position > 0 || maxPosition === position || _this.state.scrollingStarted) {
+          return _this._addTouchEventHandlers();
         }
 
         if (deltaY >= 50 || deltaY <= -50) {
           // set state
 
-          var index = this.props.anchors[activeSection];
-          if (!this.props.anchors.length || index) {
+          var index = _this.props.anchors[activeSection];
+          if (!_this.props.anchors.length || index) {
             window.location.hash = '#' + index;
           }
 
-          this.setState({
+          _this.setState({
             activeSection: activeSection,
             scrollingStarted: true,
             sectionScrolledPosition: position
           });
 
           setTimeout(function () {
-            _this2.setState({
+            _this.setState({
               scrollingStarted: false
             });
-            _this2._addTouchEventHandlers();
-          }, this.props.delay + 300);
+            _this._addTouchEventHandlers();
+          }, _this.props.delay + 300);
         }
 
         if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
@@ -338,6 +339,10 @@ var SectionsContainer = _react2.default.createClass({
     );
   },
   render: function render() {
+    var outerContainerStyle = {
+      height: '100%'
+    };
+
     var containerStyle = {
       height: '100%',
       width: '100%',
@@ -347,7 +352,7 @@ var SectionsContainer = _react2.default.createClass({
     };
     return _react2.default.createElement(
       'div',
-      null,
+      { style: outerContainerStyle },
       _react2.default.createElement(
         'div',
         { className: this.props.className, style: containerStyle },

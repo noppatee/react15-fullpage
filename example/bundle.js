@@ -21707,6 +21707,8 @@
 	    window.removeEventListener('keydown', this._handleArrowKeys);
 
 	    document.querySelector('body').style.overflow = 'visible';
+
+	    this._removeTouchEventHandlers();
 	  },
 	  componentDidMount: function componentDidMount() {
 	    window.addEventListener('resize', this._handleResize);
@@ -21721,6 +21723,9 @@
 	        window.addEventListener('keydown', this._handleArrowKeys);
 	      }
 	    }
+
+	    // try touch events
+	    this._addTouchEventHandlers();
 	  },
 	  _addCSS3Scroll: function _addCSS3Scroll() {
 	    this._addOverflowToBody();
@@ -21763,8 +21768,11 @@
 	  _addOverflowToBody: function _addOverflowToBody() {
 	    document.querySelector('body').style.overflow = 'hidden';
 	  },
+
+	  // height 100% - to have container fixed height
 	  _addHeightToParents: function _addHeightToParents() {
-	    var child = this.refs;
+	    // let child = this.refs;
+	    var child = _reactDom2.default.findDOMNode(this);
 	    var previousParent = child.parentNode;
 
 	    while (previousParent) {
@@ -21785,7 +21793,7 @@
 	    window.removeEventListener('DOMMouseScroll', this._mouseWheelHandler);
 	  },
 	  _mouseWheelHandler: function _mouseWheelHandler() {
-	    var _this = this;
+	    var _this2 = this;
 
 	    this._removeMouseWheelEventHandlers();
 
@@ -21811,10 +21819,10 @@
 	    });
 
 	    setTimeout(function () {
-	      _this.setState({
+	      _this2.setState({
 	        scrollingStarted: false
 	      });
-	      _this._addMouseWheelEventHandlers();
+	      _this2._addMouseWheelEventHandlers();
 	    }, this.props.delay + 300);
 	  },
 	  _handleResize: function _handleResize() {
@@ -21855,8 +21863,80 @@
 
 	    this._addActiveClass();
 	  },
+	  _addTouchEventHandlers: function _addTouchEventHandlers() {
+	    window.addEventListener('touchstart', this._handleSwipeEvents, false);
+	  },
+	  _removeTouchEventHandlers: function _removeTouchEventHandlers() {
+	    window.removeEventListener('touchstart', this._handleSwipeEvents);
+	    window.removeEventListener('touchmove', this._handleSwipeEvents);
+	  },
+	  _handleSwipeEvents: function _handleSwipeEvents() {
+	    this._removeTouchEventHandlers();
+
+	    var _this = this;
+
+	    var startX = void 0,
+	        startY = void 0;
+
+	    var e = window.event || e; // old IE support
+
+	    // document.addEventListener("touchstart", touchstart);
+
+	    // function touchstart(event) {
+	    var touches = e.touches;
+	    if (touches && touches.length) {
+	      startX = touches[0].pageX;
+	      startY = touches[0].pageY;
+	      document.addEventListener('touchmove', touchmove);
+	    }
+
+	    function touchmove(event) {
+
+	      var touches = event.touches;
+	      if (touches && touches.length) {
+	        event.preventDefault();
+	        var deltaX = startX - touches[0].pageX;
+	        var deltaY = startY - touches[0].pageY;
+
+	        var offsetDelta = Math.max(-1, Math.min(1, deltaY));
+	        var position = _this.state.sectionScrolledPosition - offsetDelta * _this.state.windowHeight;
+	        var activeSection = _this.state.activeSection + offsetDelta;
+	        var maxPosition = 0 - _this.props.children.length * _this.state.windowHeight;
+
+	        if (position > 0 || maxPosition === position || _this.state.scrollingStarted) {
+	          return _this._addTouchEventHandlers();
+	        }
+
+	        if (deltaY >= 50 || deltaY <= -50) {
+	          // set state
+
+	          var index = _this.props.anchors[activeSection];
+	          if (!_this.props.anchors.length || index) {
+	            window.location.hash = '#' + index;
+	          }
+
+	          _this.setState({
+	            activeSection: activeSection,
+	            scrollingStarted: true,
+	            sectionScrolledPosition: position
+	          });
+
+	          setTimeout(function () {
+	            _this.setState({
+	              scrollingStarted: false
+	            });
+	            _this._addTouchEventHandlers();
+	          }, _this.props.delay + 300);
+	        }
+
+	        if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
+	          document.removeEventListener('touchmove', touchmove);
+	        }
+	      }
+	    }
+	  },
 	  renderNavigation: function renderNavigation() {
-	    var _this2 = this;
+	    var _this3 = this;
 
 	    var navigationStyle = {
 	      position: 'fixed',
@@ -21874,14 +21954,18 @@
 	        backgroundColor: '#556270',
 	        padding: '5px',
 	        transition: 'all 0.2s',
-	        transform: _this2.state.activeSection === index ? 'scale(1.3)' : 'none'
+	        transform: _this3.state.activeSection === index ? 'scale(1.3)' : 'none'
 	      };
-	      return _react2.default.createElement('a', { href: '#' + link, key: index, className: _this2.props.navigationAnchorClass || 'Navigation-Anchor', style: _this2.props.navigationAnchorClass ? null : anchorStyle });
+	      return _react2.default.createElement('a', { href: '#' + link, key: index, className: _this3.props.navigationAnchorClass || 'Navigation-Anchor', style: _this3.props.navigationAnchorClass ? null : anchorStyle });
 	    });
 
 	    return _react2.default.createElement('div', { className: this.props.navigationClass || 'Navigation', style: this.props.navigationClass ? null : navigationStyle }, anchors);
 	  },
 	  render: function render() {
+	    var outerContainerStyle = {
+	      height: '100%'
+	    };
+
 	    var containerStyle = {
 	      height: '100%',
 	      width: '100%',
@@ -21889,7 +21973,7 @@
 	      transform: 'translate3d(0px, ' + this.state.sectionScrolledPosition + 'px, 0px)',
 	      transition: 'all ' + this.props.delay + 'ms ease'
 	    };
-	    return _react2.default.createElement('div', null, _react2.default.createElement('div', { className: this.props.className, style: containerStyle }, this.props.scrollBar ? this._addChildrenWithAnchorId() : this.props.children), this.props.navigation && !this.props.scrollBar ? this.renderNavigation() : null);
+	    return _react2.default.createElement('div', { style: outerContainerStyle }, _react2.default.createElement('div', { className: this.props.className, style: containerStyle }, this.props.scrollBar ? this._addChildrenWithAnchorId() : this.props.children), this.props.navigation && !this.props.scrollBar ? this.renderNavigation() : null);
 	  }
 	});
 
