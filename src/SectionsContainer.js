@@ -242,7 +242,7 @@ const SectionsContainer = React.createClass({
 
   _removeTouchEventHandlers() {
     window.removeEventListener('touchstart', this._handleSwipeEvents);
-    window.removeEventListener('touchmove', this._handleSwipeEvents);
+    // window.removeEventListener('touchmove', this._handleSwipeEvents);
   },
 
   _handleSwipeEvents() {
@@ -255,19 +255,21 @@ const SectionsContainer = React.createClass({
 
     let e = window.event || e; // old IE support
 
-    // document.addEventListener("touchstart", touchstart);
-
-  	// function touchstart(event) {
-		let touches = e.touches;
+		let touches = e.changedTouches;
 		if (touches && touches.length) {
 			startX = touches[0].pageX;
 			startY = touches[0].pageY;
-      document.addEventListener('touchmove', touchmove);
+      window.addEventListener('touchmove', touchmove);
+      window.addEventListener('touchend', touchend);
   	}
 
-  	function touchmove(event) {
+    function touchmove(event) {
+      event.preventDefault();
+    }
 
-  		let touches = event.touches;
+  	function touchend(event) {
+
+  		let touches = event.changedTouches;
   		if (touches && touches.length) {
   		  event.preventDefault();
   			let deltaX = startX - touches[0].pageX;
@@ -306,7 +308,7 @@ const SectionsContainer = React.createClass({
         }
 
   			if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
-  				document.removeEventListener('touchmove', touchmove);
+  				window.removeEventListener('touchend', touchend);
   			}
   		}
   	}

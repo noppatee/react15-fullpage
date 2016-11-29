@@ -21868,7 +21868,7 @@
 	  },
 	  _removeTouchEventHandlers: function _removeTouchEventHandlers() {
 	    window.removeEventListener('touchstart', this._handleSwipeEvents);
-	    window.removeEventListener('touchmove', this._handleSwipeEvents);
+	    // window.removeEventListener('touchmove', this._handleSwipeEvents);
 	  },
 	  _handleSwipeEvents: function _handleSwipeEvents() {
 	    this._removeTouchEventHandlers();
@@ -21880,19 +21880,21 @@
 
 	    var e = window.event || e; // old IE support
 
-	    // document.addEventListener("touchstart", touchstart);
-
-	    // function touchstart(event) {
-	    var touches = e.touches;
+	    var touches = e.changedTouches;
 	    if (touches && touches.length) {
 	      startX = touches[0].pageX;
 	      startY = touches[0].pageY;
-	      document.addEventListener('touchmove', touchmove);
+	      window.addEventListener('touchmove', touchmove);
+	      window.addEventListener('touchend', touchend);
 	    }
 
 	    function touchmove(event) {
+	      event.preventDefault();
+	    }
 
-	      var touches = event.touches;
+	    function touchend(event) {
+
+	      var touches = event.changedTouches;
 	      if (touches && touches.length) {
 	        event.preventDefault();
 	        var deltaX = startX - touches[0].pageX;
@@ -21930,7 +21932,7 @@
 	        }
 
 	        if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
-	          document.removeEventListener('touchmove', touchmove);
+	          window.removeEventListener('touchend', touchend);
 	        }
 	      }
 	    }
