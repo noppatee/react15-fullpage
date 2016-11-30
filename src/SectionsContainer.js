@@ -151,6 +151,19 @@ const SectionsContainer = React.createClass({
       }
     }
   },
+  _removeHeightFromParents() {
+    let child = ReactDOM.findDOMNode(this);
+    let previousParent = child.parentNode;
+
+    while (previousParent) {
+      if ('style' in previousParent && previousParent.style.height && previousParent.style.height == '100%') {
+        previousParent.style.height = undefined;
+        previousParent = previousParent.parentNode;
+      } else {
+        return false;
+      }
+    }
+  },
 
   _addMouseWheelEventHandlers() {
     window.addEventListener('mousewheel', this._mouseWheelHandler, false);

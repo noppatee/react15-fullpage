@@ -81,6 +81,10 @@ var SectionsContainer = _react2.default.createClass({
     document.querySelector('body').style.overflow = 'visible';
 
     this._removeTouchEventHandlers();
+
+    if (!this.props.scrollBar) {
+      this._removeHeightFromParents();
+    }
   },
   componentDidMount: function componentDidMount() {
     window.addEventListener('resize', this._handleResize);
@@ -151,6 +155,19 @@ var SectionsContainer = _react2.default.createClass({
     while (previousParent) {
       if ('style' in previousParent) {
         previousParent.style.height = '100%';
+        previousParent = previousParent.parentNode;
+      } else {
+        return false;
+      }
+    }
+  },
+  _removeHeightFromParents: function _removeHeightFromParents() {
+    var child = _reactDom2.default.findDOMNode(this);
+    var previousParent = child.parentNode;
+
+    while (previousParent) {
+      if ('style' in previousParent && previousParent.style.height && previousParent.style.height == '100%') {
+        previousParent.style.removeProperty('height');
         previousParent = previousParent.parentNode;
       } else {
         return false;

@@ -21784,6 +21784,19 @@
 	      }
 	    }
 	  },
+	  _removeHeightFromParents: function _removeHeightFromParents() {
+	    var child = _reactDom2.default.findDOMNode(this);
+	    var previousParent = child.parentNode;
+
+	    while (previousParent) {
+	      if ('style' in previousParent && previousParent.style.height && previousParent.style.height == '100%') {
+	        previousParent.style.height = undefined;
+	        previousParent = previousParent.parentNode;
+	      } else {
+	        return false;
+	      }
+	    }
+	  },
 	  _addMouseWheelEventHandlers: function _addMouseWheelEventHandlers() {
 	    window.addEventListener('mousewheel', this._mouseWheelHandler, false);
 	    window.addEventListener('DOMMouseScroll', this._mouseWheelHandler, false);
