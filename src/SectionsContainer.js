@@ -16,6 +16,7 @@ const SectionsContainer = React.createClass({
     sectionPaddingTop:      React.PropTypes.string,
     sectionPaddingBottom:   React.PropTypes.string,
     arrowNavigation:        React.PropTypes.bool,
+    ignoreTouchClass: React.PropTypes.string,
   },
 
   childContextTypes: {
@@ -46,7 +47,8 @@ const SectionsContainer = React.createClass({
       activeClass:          'active',
       sectionPaddingTop:    '0',
       sectionPaddingBottom: '0',
-      arrowNavigation:      true
+      arrowNavigation:      true,
+      ignoreTouchClass: '',
     };
   },
 
@@ -250,83 +252,97 @@ const SectionsContainer = React.createClass({
   },
 
   _addTouchEventHandlers() {
-    window.addEventListener('touchstart', this._handleSwipeEvents, false);
+    window.addEventListener('touchstart', this._touchStartHandler);
+    // window.addEventListener('touchmove', this._touchMoveHandler);
+    // window.addEventListener('touchend', this._touchEndHandler);
   },
 
   _removeTouchEventHandlers() {
-    window.removeEventListener('touchstart', this._handleSwipeEvents);
-    // window.removeEventListener('touchmove', this._handleSwipeEvents);
+    window.removeEventListener('touchstart', this._touchStartHandler);
+    window.removeEventListener('touchmove', this._touchMoveHandler);
+    window.removeEventListener('touchend', this._touchEndHandler);
   },
+  _touchStartHandler(evt) {
+    if (this.props.ignoreTouchClass.length && evt.target) {
+      let child = evt.target;
+      let previousParent = child.parentNode;
 
-  _handleSwipeEvents() {
-    this._removeTouchEventHandlers();
-
-    let _this = this;
-
-  	let startX,
-  		startY;
-
-    let e = window.event || e; // old IE support
-
-		let touches = e.changedTouches;
-		if (touches && touches.length) {
-			startX = touches[0].pageX;
-			startY = touches[0].pageY;
-      window.addEventListener('touchmove', touchmove);
-      window.addEventListener('touchend', touchend);
-  	}
-
-    function touchmove(event) {
-      event.preventDefault();
+      while (previousParent) {
+        if (previousParent.className && previousParent.className.indexOf(this.props.ignoreTouchClass) >= 0) {
+          console.log('found', this.props.ignoreTouchClass);
+          return true;
+        } else {
+          previousParent = previousParent.parentNode;
+          // return false;
+        }
+      }
     }
 
-  	function touchend(event) {
-
-  		let touches = event.changedTouches;
-  		if (touches && touches.length) {
-  		  event.preventDefault();
-  			let deltaX = startX - touches[0].pageX;
-  			let deltaY = startY - touches[0].pageY;
-
-        let offsetDelta = Math.max(-1, Math.min(1, deltaY));
-        let position = _this.state.sectionScrolledPosition - offsetDelta * _this.state.windowHeight;
-        let activeSection = _this.state.activeSection + offsetDelta;
-        let maxPosition = 0 - _this.props.children.length * _this.state.windowHeight;
-
-        if (position > 0 || maxPosition === position || _this.state.scrollingStarted) {
-          return _this._addTouchEventHandlers();
-        }
-
-        if (deltaY >= 50 || deltaY <= -50) {
-          // set state
-
-          let index = _this.props.anchors[activeSection];
-          if (!_this.props.anchors.length || index) {
-            window.location.hash = '#' + index;
-          }
-
-          _this.setState({
-            activeSection: activeSection,
-            scrollingStarted: true,
-            sectionScrolledPosition: position
-          });
-
-          setTimeout(() => {
-            _this.setState({
-              scrollingStarted: false
-            });
-            _this._addTouchEventHandlers();
-          }, _this.props.delay + 300);
-
-        }
-
-  			if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
-  				window.removeEventListener('touchend', touchend);
-  			}
-  		}
-  	}
+    let touches = evt.changedTouches;
+		this.startX = touches[0].pageX;
+		this.startY = touches[0].pageY;
+    this.startTime = new Date().getTime();
+    evt.preventDefault();
+    window.addEventListener('touchmove', this._touchMoveHandler);
+    window.addEventListener('touchend', this._touchEndHandler);
   },
+  _touchMoveHandler(evt) {
+    evt.preventDefault();
+  },
+  _touchEndHandler(evt) {
+    this._removeTouchEventHandlers();
 
+    const distThreshold = 100;
+    const allowedTime = 300;
+
+    let elapseTime = (this.startTime) ? new Date().getTime() - this.startTime : -1;
+
+    let touches = evt.changedTouches;
+
+    // let deltaX = this.startX - touches[0].pageX;
+    let deltaY = this.startY - touches[0].pageY;
+
+    let offsetDelta = Math.max(-1, Math.min(1, deltaY));
+    let position = this.state.sectionScrolledPosition - offsetDelta * this.state.windowHeight;
+    let activeSection = this.state.activeSection + offsetDelta;
+    let maxPosition = 0 - this.props.children.length * this.state.windowHeight;
+
+    if (elapseTime > 0 && elapseTime <= allowedTime) {
+
+      if (position > 0 || maxPosition === position || this.state.scrollingStarted) {
+        evt.preventDefault();
+        return this._addTouchEventHandlers();
+      }
+
+      if (Math.abs(deltaY) >= distThreshold) {
+
+        let index = this.props.anchors[activeSection];
+        if (!this.props.anchors.length || index) {
+          window.location.hash = '#' + index;
+        }
+
+        this.setState({
+          activeSection: activeSection,
+          scrollingStarted: true,
+          sectionScrolledPosition: position
+        });
+
+        setTimeout(() => {
+          this.setState({
+            scrollingStarted: false
+          });
+          // this._addTouchEventHandlers();
+        }, this.props.delay + 300);
+
+      } else {
+        // this._addTouchEventHandlers();
+      }
+    } else {
+      // this._addTouchEventHandlers();
+    }
+    this._addTouchEventHandlers();
+    evt.preventDefault();
+  },
   renderNavigation() {
     let navigationStyle = {
       position:   'fixed',

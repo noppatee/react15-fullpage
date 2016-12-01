@@ -30,7 +30,8 @@ var SectionsContainer = _react2.default.createClass({
     activeClass: _react2.default.PropTypes.string,
     sectionPaddingTop: _react2.default.PropTypes.string,
     sectionPaddingBottom: _react2.default.PropTypes.string,
-    arrowNavigation: _react2.default.PropTypes.bool
+    arrowNavigation: _react2.default.PropTypes.bool,
+    ignoreTouchClass: _react2.default.PropTypes.string
   },
 
   childContextTypes: {
@@ -60,7 +61,8 @@ var SectionsContainer = _react2.default.createClass({
       activeClass: 'active',
       sectionPaddingTop: '0',
       sectionPaddingBottom: '0',
-      arrowNavigation: true
+      arrowNavigation: true,
+      ignoreTouchClass: ''
     };
   },
   getChildContext: function getChildContext() {
@@ -81,10 +83,6 @@ var SectionsContainer = _react2.default.createClass({
     document.querySelector('body').style.overflow = 'visible';
 
     this._removeTouchEventHandlers();
-
-    if (!this.props.scrollBar) {
-      this._removeHeightFromParents();
-    }
   },
   componentDidMount: function componentDidMount() {
     window.addEventListener('resize', this._handleResize);
@@ -167,7 +165,7 @@ var SectionsContainer = _react2.default.createClass({
 
     while (previousParent) {
       if ('style' in previousParent && previousParent.style.height && previousParent.style.height == '100%') {
-        previousParent.style.removeProperty('height');
+        previousParent.style.height = undefined;
         previousParent = previousParent.parentNode;
       } else {
         return false;
@@ -183,7 +181,7 @@ var SectionsContainer = _react2.default.createClass({
     window.removeEventListener('DOMMouseScroll', this._mouseWheelHandler);
   },
   _mouseWheelHandler: function _mouseWheelHandler() {
-    var _this2 = this;
+    var _this = this;
 
     this._removeMouseWheelEventHandlers();
 
@@ -209,10 +207,10 @@ var SectionsContainer = _react2.default.createClass({
     });
 
     setTimeout(function () {
-      _this2.setState({
+      _this.setState({
         scrollingStarted: false
       });
-      _this2._addMouseWheelEventHandlers();
+      _this._addMouseWheelEventHandlers();
     }, this.props.delay + 300);
   },
   _handleResize: function _handleResize() {
@@ -254,78 +252,96 @@ var SectionsContainer = _react2.default.createClass({
     this._addActiveClass();
   },
   _addTouchEventHandlers: function _addTouchEventHandlers() {
-    window.addEventListener('touchstart', this._handleSwipeEvents, false);
+    window.addEventListener('touchstart', this._touchStartHandler);
+    // window.addEventListener('touchmove', this._touchMoveHandler);
+    // window.addEventListener('touchend', this._touchEndHandler);
   },
   _removeTouchEventHandlers: function _removeTouchEventHandlers() {
-    window.removeEventListener('touchstart', this._handleSwipeEvents);
-    // window.removeEventListener('touchmove', this._handleSwipeEvents);
+    window.removeEventListener('touchstart', this._touchStartHandler);
+    window.removeEventListener('touchmove', this._touchMoveHandler);
+    window.removeEventListener('touchend', this._touchEndHandler);
   },
-  _handleSwipeEvents: function _handleSwipeEvents() {
-    this._removeTouchEventHandlers();
+  _touchStartHandler: function _touchStartHandler(evt) {
+    if (this.props.ignoreTouchClass.length && evt.target) {
+      var child = evt.target;
+      var previousParent = child.parentNode;
 
-    var _this = this;
-
-    var startX = void 0,
-        startY = void 0;
-
-    var e = window.event || e; // old IE support
-
-    var touches = e.changedTouches;
-    if (touches && touches.length) {
-      startX = touches[0].pageX;
-      startY = touches[0].pageY;
-      window.addEventListener('touchmove', touchmove);
-      window.addEventListener('touchend', touchend);
-    }
-
-    function touchmove(event) {
-      event.preventDefault();
-    }
-
-    function touchend(event) {
-
-      var touches = event.changedTouches;
-      if (touches && touches.length) {
-        event.preventDefault();
-        var deltaX = startX - touches[0].pageX;
-        var deltaY = startY - touches[0].pageY;
-
-        var offsetDelta = Math.max(-1, Math.min(1, deltaY));
-        var position = _this.state.sectionScrolledPosition - offsetDelta * _this.state.windowHeight;
-        var activeSection = _this.state.activeSection + offsetDelta;
-        var maxPosition = 0 - _this.props.children.length * _this.state.windowHeight;
-
-        if (position > 0 || maxPosition === position || _this.state.scrollingStarted) {
-          return _this._addTouchEventHandlers();
-        }
-
-        if (deltaY >= 50 || deltaY <= -50) {
-          // set state
-
-          var index = _this.props.anchors[activeSection];
-          if (!_this.props.anchors.length || index) {
-            window.location.hash = '#' + index;
-          }
-
-          _this.setState({
-            activeSection: activeSection,
-            scrollingStarted: true,
-            sectionScrolledPosition: position
-          });
-
-          setTimeout(function () {
-            _this.setState({
-              scrollingStarted: false
-            });
-            _this._addTouchEventHandlers();
-          }, _this.props.delay + 300);
-        }
-
-        if (Math.abs(deltaX) >= 50 || Math.abs(deltaY) >= 50) {
-          window.removeEventListener('touchend', touchend);
+      while (previousParent) {
+        if (previousParent.className && previousParent.className.indexOf(this.props.ignoreTouchClass) >= 0) {
+          console.log('found', this.props.ignoreTouchClass);
+          return true;
+        } else {
+          previousParent = previousParent.parentNode;
+          // return false;
         }
       }
     }
+
+    var touches = evt.changedTouches;
+    this.startX = touches[0].pageX;
+    this.startY = touches[0].pageY;
+    this.startTime = new Date().getTime();
+    evt.preventDefault();
+    window.addEventListener('touchmove', this._touchMoveHandler);
+    window.addEventListener('touchend', this._touchEndHandler);
+  },
+  _touchMoveHandler: function _touchMoveHandler(evt) {
+    evt.preventDefault();
+  },
+  _touchEndHandler: function _touchEndHandler(evt) {
+    var _this2 = this;
+
+    this._removeTouchEventHandlers();
+
+    var distThreshold = 100;
+    var allowedTime = 300;
+
+    var elapseTime = this.startTime ? new Date().getTime() - this.startTime : -1;
+
+    var touches = evt.changedTouches;
+
+    // let deltaX = this.startX - touches[0].pageX;
+    var deltaY = this.startY - touches[0].pageY;
+
+    var offsetDelta = Math.max(-1, Math.min(1, deltaY));
+    var position = this.state.sectionScrolledPosition - offsetDelta * this.state.windowHeight;
+    var activeSection = this.state.activeSection + offsetDelta;
+    var maxPosition = 0 - this.props.children.length * this.state.windowHeight;
+
+    if (elapseTime > 0 && elapseTime <= allowedTime) {
+
+      if (position > 0 || maxPosition === position || this.state.scrollingStarted) {
+        evt.preventDefault();
+        return this._addTouchEventHandlers();
+      }
+
+      if (Math.abs(deltaY) >= distThreshold) {
+
+        var index = this.props.anchors[activeSection];
+        if (!this.props.anchors.length || index) {
+          window.location.hash = '#' + index;
+        }
+
+        this.setState({
+          activeSection: activeSection,
+          scrollingStarted: true,
+          sectionScrolledPosition: position
+        });
+
+        setTimeout(function () {
+          _this2.setState({
+            scrollingStarted: false
+          });
+          // this._addTouchEventHandlers();
+        }, this.props.delay + 300);
+      } else {
+        // this._addTouchEventHandlers();
+      }
+    } else {
+        // this._addTouchEventHandlers();
+      }
+    this._addTouchEventHandlers();
+    evt.preventDefault();
   },
   renderNavigation: function renderNavigation() {
     var _this3 = this;
