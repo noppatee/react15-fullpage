@@ -269,7 +269,7 @@ const SectionsContainer = React.createClass({
 
       while (previousParent) {
         if (previousParent.className && previousParent.className.indexOf(this.props.ignoreTouchClass) >= 0) {
-          console.log('found', this.props.ignoreTouchClass);
+          // console.log('found', this.props.ignoreTouchClass);
           return true;
         } else {
           previousParent = previousParent.parentNode;
